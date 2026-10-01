@@ -1,0 +1,132 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI LÀ TRIỆU PHÚ — Quản trò</title><script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#173a86,#07142f 65%);color:#fff;font-family:Arial,sans-serif}.wrap{max-width:1100px;margin:auto;padding:24px}.card{background:rgba(0,0,0,.30);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:28px;box-shadow:0 15px 40px rgba(0,0,0,.28)}h1{font-family:Georgia,serif;text-align:center;color:#ffd33d;font-size:42px;margin:5px 0 8px}.sub{text-align:center;opacity:.82;margin-bottom:22px}.panel{max-width:780px;margin:0 auto}.hidden{display:none!important}.status,.note{text-align:center}.status{font-size:18px;margin:14px 0}.players{margin-top:16px;padding:15px;background:rgba(255,255,255,.08);border-radius:12px}.qr{background:#fff;padding:12px;border-radius:14px;width:max-content;margin:14px auto}.hostLink{display:none}.big{font-size:90px;text-align:center;color:#ffd33d;font-weight:900;margin:22px}.timer{font-size:52px;text-align:center;color:#ffd33d;font-weight:900}.q{font-size:28px;font-weight:800;line-height:1.4;margin:18px 0}.answers{display:grid;gap:12px}.answer{width:100%;padding:15px;border:0;border-radius:12px;background:#173b86;color:#fff;text-align:left;font-size:18px;font-weight:700;cursor:pointer}.answer:disabled{cursor:default}.controls button,.joinbtn{width:100%;padding:15px;border:0;border-radius:12px;font-size:18px;font-weight:800;background:#ffd33d;color:#07142f;cursor:pointer;margin-top:10px}.controls button:disabled{opacity:.45;cursor:not-allowed}input{width:100%;padding:15px;border:0;border-radius:12px;font-size:18px;margin:8px 0;color:#111}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:11px;border-bottom:1px solid rgba(255,255,255,.15);text-align:center}th{color:#ffd33d}.rank1{font-size:24px;color:#ffd33d}.ok{background:#198754!important}.bad{background:#b02a37!important}.info{padding:12px;border-radius:10px;background:rgba(255,255,255,.08);margin-top:14px}
+</style></head><body><div class="wrap"><div class="card"><h1>AI LÀ TRIỆU PHÚ</h1><div class="sub">Màn hình quản trò</div>
+<section id="hostPanel" class="panel">
+<h2>🎤 QUẢN TRÒ</h2><div id="status" class="status">Đang kết nối...</div>
+<div class="info"><div style="text-align:center">📱 QUÉT QR ĐỂ THAM GIA</div><div id="qr" class="qr"></div><div id="playerLink" class="hostLink"></div></div>
+<div class="players">👥 Người chơi: <b id="count">0</b><div id="names" class="note">Đang chờ người chơi...</div></div>
+<div class="controls"><button id="start" disabled>▶ BẮT ĐẦU</button></div>
+</section>
+<section id="game" class="hidden panel"><div id="timer" class="timer">15</div><div id="qno" class="note"></div><div id="question" class="q"></div><div id="answers" class="answers"></div><div id="reveal" class="status"></div></section>
+<section id="roundResults" class="hidden panel"><h2 style="text-align:center">📊 KẾT QUẢ CÂU VỪA RỒI</h2><div id="roundTitle" class="note"></div><table><thead><tr><th>Hạng</th><th>Tên</th><th>Thời gian</th><th>Điểm câu</th><th>Tổng điểm</th></tr></thead><tbody id="roundBoard"></tbody></table></section>
+<section id="results" class="hidden panel"><h2 style="text-align:center">🏆 TỔNG KẾT BẢNG XẾP HẠNG</h2><table><thead><tr><th>Hạng</th><th>Tên</th><th>Tổng điểm</th></tr></thead><tbody id="board"></tbody></table></section>
+</div></div>
+<script>
+const QUESTIONS=[["Theo triết học Mác – Lênin, bản chất con người được hiểu là gì?", ["Bản chất sinh học thuần túy", "Bản chất tinh thần bất biến", "Tổng hòa các quan hệ xã hội", "Do số phận quyết định"], 2], ["Quan niệm triết học Mác – Lênin về “Tự do” là gì?", ["Làm bất cứ điều gì mình muốn", "Nhận thức và hành động theo quy luật khách quan", "Không chịu bất kỳ giới hạn nào", "Sống tách khỏi xã hội"], 1], ["Tự do của cá nhân có quan hệ thế nào với xã hội?", ["Hoàn toàn tách biệt", "Chỉ phụ thuộc vào ý muốn cá nhân", "Được thực hiện trong những điều kiện xã hội nhất định", "Không liên quan đến người khác"], 2], ["Mối quan hệ giữa con người và hoàn cảnh xã hội được hiểu thế nào?", ["Con người hoàn toàn bị hoàn cảnh quyết định", "Hoàn cảnh không ảnh hưởng con người", "Con người vừa chịu tác động vừa cải tạo hoàn cảnh", "Con người tồn tại độc lập với xã hội"], 2], ["Nếu không có các quan hệ xã hội, con người sẽ như thế nào?", ["Vẫn phát triển đầy đủ như một con người xã hội", "Không thể phát triển đầy đủ bản chất xã hội", "Trở nên hoàn toàn tự do", "Không chịu ảnh hưởng nào"], 1], ["Câu thành ngữ hoặc tục ngữ nào thể hiện vai trò của hoàn cảnh?", ["Có công mài sắt, có ngày nên kim", "Đi một ngày đàng, học một sàng khôn", "Gần mực thì đen, gần đèn thì sáng", "Uống nước nhớ nguồn"], 2], ["Câu ca dao hoặc tục ngữ nào thể hiện vai trò của con người trong việc tự quyết định?", ["Cha mẹ sinh con, trời sinh tính", "Có chí thì nên", "Đói cho sạch, rách cho thơm", "Ăn quả nhớ kẻ trồng cây"], 1], ["Yếu tố nào giúp con người phát huy tự do một cách hiện thực?", ["Nhận thức và cải tạo hoàn cảnh", "Chỉ dựa vào may mắn", "Tách khỏi xã hội", "Không cần tuân theo quy luật"], 0], ["Chọn câu hoàn chỉnh chứa các từ Hán – Việt phù hợp.", ["Con người là tổng hòa những quan hệ xã hội", "Con người là sản phẩm của xã hội", "Con người là chủ thể của lịch sử", "Cả ba ý trên"], 3], ["Quan niệm cho rằng “số phận đã được định sẵn” trái với quan điểm nào?", ["Con người không thể thay đổi gì", "Con người có khả năng lựa chọn và hành động trong những điều kiện nhất định", "Xã hội không ảnh hưởng cá nhân", "Mọi thứ đều do may rủi"], 1]];
+const QUESTION_MS=15000,REVEAL_MS=2000,PREP_MS=5000;
+const PLAYER_PAGE='https://phannguyenthanhphat46-hash.github.io/ai-la-trieu-phu/index.html';
+if(location.protocol==='file:'){
+ document.title='AI LÀ TRIỆU PHÚ — Mở bằng HTTPS';
+ const s=document.getElementById('status');
+ if(s)s.innerHTML='⚠️ Bạn đang mở file trực tiếp từ máy tính (<b>file://</b>). Hãy tải file này lên GitHub Pages rồi mở bằng <b>https://</b> để dùng trong lớp.';
+}
+const statusEl=document.getElementById('status'),startBtn=document.getElementById('start'),game=document.getElementById('game'),hostPanel=document.getElementById('hostPanel'),results=document.getElementById('results'),roundResults=document.getElementById('roundResults'),timerEl=document.getElementById('timer'),qno=document.getElementById('qno'),questionEl=document.getElementById('question'),answersEl=document.getElementById('answers'),revealEl=document.getElementById('reveal');
+let peer=null,conns=new Set(),players={},playerIds={},gameStarted=false,gameFinished=false,timer=null,current=-1,currentStartAt=0,roundAnswers={},peerRetry=null,peerBusy=false,hostId='',generation=0;
+const HEARTBEAT_MS=5000,STALE_MS=25000;
+function setStatus(t){statusEl.textContent=t}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function send(c,m){try{if(c&&c.open){c.send(m);return true}}catch(e){}return false}
+function scoreSnapshot(){
+ const out={};
+ for(const name of Object.keys(players||{})){
+  const p=players[name]||{};
+  out[name]={score:Number(p.score)||0};
+ }
+ return out;
+}
+function broadcast(m){for(const c of [...conns])send(c,m)}
+function uniqueName(raw){
+ const base=String(raw||'Người chơi').trim().slice(0,30)||'Người chơi';
+ if(!players[base]||!players[base]._conn||!players[base]._conn.open)return base;
+ let n=2;while(players[base+' ('+n+')']&&players[base+' ('+n+')']._conn&&players[base+' ('+n+')']._conn.open)n++;
+ return base+' ('+n+')';
+}
+function renderNames(){
+ const seen=new Set(),list=[];
+ for(const c of conns)if(c.open&&c.playerName&&!seen.has(c.playerName)){seen.add(c.playerName);list.push(c.playerName)}
+ list.sort((a,b)=>a.localeCompare(b,'vi'));
+ document.getElementById('count').textContent=list.length;
+ document.getElementById('names').textContent=list.length?list.join(' • '):'Đang chờ người chơi...';
+ startBtn.disabled=gameStarted||list.length===0;
+}
+function setupQR(id){
+ hostId=id;const url=PLAYER_PAGE+'#h='+encodeURIComponent(id),box=document.getElementById('qr');
+ box.innerHTML='';new QRCode(box,{text:url,width:210,height:210,correctLevel:QRCode.CorrectLevel.M});
+ document.getElementById('playerLink').textContent=url;document.getElementById('playerLink').style.display='block';
+}
+function showQ(i,startAt){
+ if(!QUESTIONS[i])return;current=i;currentStartAt=Number(startAt)||Date.now();
+ game.classList.remove('hidden');hostPanel.classList.add('hidden');results.classList.add('hidden');roundResults.classList.add('hidden');revealEl.textContent='';
+ const q=QUESTIONS[i];qno.textContent=`Câu ${i+1}/${QUESTIONS.length}`;questionEl.textContent=q[0];answersEl.innerHTML='';
+ q[1].forEach((x,j)=>{const b=document.createElement('button');b.className='answer';b.textContent=String.fromCharCode(65+j)+'. '+x;b.disabled=true;answersEl.appendChild(b)});
+ roundAnswers={};runTimer(currentStartAt+QUESTION_MS,i);
+}
+function runTimer(deadline,i){
+ clearInterval(timer);const tick=()=>{const left=Math.max(0,deadline-Date.now());timerEl.textContent=Math.ceil(left/1000);if(left<=0){clearInterval(timer);showReveal(i)}};timer=setInterval(tick,50);tick();
+}
+function showReveal(i){
+ const q=QUESTIONS[i];[...answersEl.children].forEach((b,j)=>{b.disabled=true;if(j===q[2])b.classList.add('ok')});
+ revealEl.textContent='✅ Đáp án đúng: '+String.fromCharCode(65+q[2]);setTimeout(()=>showRoundResults(i),REVEAL_MS);
+}
+function formatMs(ms){return ms==null?'—':(Number(ms)/1000).toFixed(2)+'s'}
+function renderRoundBoard(i){
+ const rows=Object.keys(players).sort((a,b)=>{const sa=players[a]?.score||0,sb=players[b]?.score||0;if(sb!==sa)return sb-sa;return(roundAnswers[a]?.elapsedMs??Infinity)-(roundAnswers[b]?.elapsedMs??Infinity)});
+ document.getElementById('roundTitle').textContent=`Sau câu ${i+1}: xếp hạng hiện tại`;
+ document.getElementById('roundBoard').innerHTML=rows.map((name,k)=>{const r=roundAnswers[name];return `<tr><td class="${k===0?'rank1':''}">${k+1}</td><td>${esc(name)}</td><td>${formatMs(r?.elapsedMs)}</td><td>${r?.points||0}</td><td>${players[name]?.score||0}</td></tr>`}).join('')||'<tr><td colspan="5">Chưa có dữ liệu</td></tr>';
+}
+function showRoundResults(i){
+ game.classList.add('hidden');hostPanel.classList.add('hidden');results.classList.add('hidden');roundResults.classList.remove('hidden');renderRoundBoard(i);
+ broadcast({type:'ROUND_RESULTS',i,answers:roundAnswers,scores:scoreSnapshot()});
+ setTimeout(()=>{if(i+1<QUESTIONS.length){const st=Date.now()+700;currentStartAt=st;broadcast({type:'Q',i:i+1,startAt:st});showQ(i+1,st)}else{roundResults.classList.add('hidden');results.classList.remove('hidden');renderBoard();gameFinished=true;broadcast({type:'RESULTS',scores:scoreSnapshot()})}},4000);
+}
+function renderBoard(){const rows=Object.keys(players).sort((a,b)=>(players[b]?.score||0)-(players[a]?.score||0));document.getElementById('board').innerHTML=rows.map((name,i)=>`<tr><td class="${i===0?'rank1':''}">${i+1}</td><td>${esc(name)}</td><td>${players[name]?.score||0}</td></tr>`).join('')||'<tr><td colspan="3">Chưa có dữ liệu</td></tr>'}
+function remove(c){conns.delete(c);/* Giữ playerIds để người chơi refresh/reconnect vẫn nhận lại đúng tên. */renderNames()}
+function attach(c){
+ conns.add(c);c.lastSeen=Date.now();c.joined=false;
+ c.on('open',()=>{c.lastSeen=Date.now();send(c,{type:'HELLO',hostId,hostNow:Date.now(),gameStarted,gameFinished,current,currentStartAt,scores:scoreSnapshot()});renderNames()});
+ c.on('data',d=>{
+  c.lastSeen=Date.now();if(!d||typeof d!=='object')return;
+  if(d.type==='PING'){send(c,{type:'PONG',hostNow:Date.now(),clientNow:Date.now()});return}
+  if(d.type==='SYNC'){send(c,{type:'SYNC_OK',clientSent:d.clientSent||Date.now(),hostNow:Date.now()});return}
+  if(d.type==='JOIN'){
+   const pid=String(d.playerId||'');let name=pid&&playerIds[pid]?playerIds[pid]:null;
+   if(!name||(players[name]?._conn&&players[name]._conn!==c&&players[name]._conn.open))name=uniqueName(d.name);
+   if(!players[name])players[name]={score:0};players[name]._conn=c;c.playerId=pid;c.playerName=name;c.joined=true;if(pid)playerIds[pid]=name;
+   send(c,{type:'WELCOME',name,playerId:pid,hostId,gameStarted,gameFinished,current,currentStartAt,scores:scoreSnapshot()});renderNames();
+   if(gameStarted&&current>=0)send(c,{type:'Q',i:current,startAt:currentStartAt});else if(gameFinished)send(c,{type:'RESULTS',scores:scoreSnapshot()});
+   return;
+  }
+  if(d.type==='ANSWER'&&c.joined&&String(d.playerId||'')===String(c.playerId||'')&&Number(d.question)===current&&!roundAnswers[c.playerName]){
+   const elapsed=Math.max(0,Math.min(QUESTION_MS,Number(d.elapsedMs)||0));
+   const correct=Number(d.answer)===QUESTIONS[current][2] && !!d.correct;
+   const points=correct?Math.max(100,2000-Math.min(1900,Math.round(elapsed/10))):0;
+   roundAnswers[c.playerName]={elapsedMs:elapsed,points,correct};if(!players[c.playerName])players[c.playerName]={score:0};players[c.playerName].score+=points;
+  }
+ });
+ c.on('close',()=>remove(c));c.on('error',()=>remove(c));
+}
+function heartbeat(){const n=Date.now();for(const c of [...conns]){if(!c.open){remove(c);continue}if(n-(c.lastSeen||n)>STALE_MS){try{c.close()}catch(e){}remove(c);continue}send(c,{type:'PING',hostNow:n,clientNow:n})}renderNames()}
+setInterval(heartbeat,HEARTBEAT_MS);
+function beginGame(){
+ if(gameStarted||gameFinished)return;
+ const active=[...conns].filter(c=>c.open&&c.joined&&c.playerName);if(!active.length){alert('Chưa có người chơi nào tham gia.');startBtn.disabled=false;return}
+ gameStarted=true;gameFinished=false;current=-1;currentStartAt=0;roundAnswers={};const keep={};for(const c of active)keep[c.playerName]={score:0,_conn:c};players=keep;
+ const st=Date.now()+PREP_MS;currentStartAt=st;broadcast({type:'START',startAt:st});
+ hostPanel.classList.add('hidden');results.classList.add('hidden');roundResults.classList.add('hidden');game.classList.remove('hidden');timerEl.textContent='5';qno.textContent='';questionEl.textContent='Chuẩn bị...';answersEl.innerHTML='';revealEl.textContent='';
+ clearInterval(timer);let t=setInterval(()=>{const left=Math.max(0,st-Date.now());timerEl.textContent=Math.ceil(left/1000);if(left<=0){clearInterval(t);const qst=Date.now()+500;currentStartAt=qst;broadcast({type:'Q',i:0,startAt:qst});showQ(0,qst)}},50);
+}
+startBtn.onclick=beginGame;
+function makePeer(){
+ if(peerBusy)return;peerBusy=true;clearTimeout(peerRetry);const gen=++generation;try{if(peer&&!peer.destroyed)peer.destroy()}catch(e){}
+ peer=null;conns.clear();players={};playerIds={};renderNames();setStatus('⏳ Đang kết nối máy chủ trò chơi...');startBtn.disabled=true;
+ try{peer=new Peer(undefined,{debug:0,host:'0.peerjs.com',port:443,path:'/',secure:true,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:stun2.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'},{urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+{urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+{urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}]}})}catch(e){peerBusy=false;peerRetry=setTimeout(makePeer,1500);return}
+ peer.on('open',id=>{if(gen!==generation)return;peerBusy=false;setupQR(id);setStatus('🟢 Quản trò đã sẵn sàng — QR đang hoạt động')});
+ peer.on('connection',c=>{if(gen===generation)attach(c);else try{c.close()}catch(e){}});
+ peer.on('disconnected',()=>{if(gen===generation){setStatus('🟠 Đang khôi phục kết nối máy chủ...');try{peer.reconnect()}catch(e){}}});
+ peer.on('error',e=>{if(gen!==generation)return;const type=e?.type||'unknown';console.error(e);if(gameStarted){setStatus('🟠 Kết nối máy chủ tín hiệu gặp lỗi ('+type+'). Người chơi đang kết nối có thể tiếp tục; không tự xoá phiên game.');return}if(type==='unavailable-id'||['network','server-error','socket-error','socket-closed','webrtc'].includes(type)){try{peer.destroy()}catch(x){}peerBusy=false;peerRetry=setTimeout(makePeer,type==='unavailable-id'?300:1500)}else{setStatus('❌ PeerJS: '+type);peerBusy=false;peerRetry=setTimeout(makePeer,2500)}});
+ peer.on('close',()=>{if(gen!==generation)return;startBtn.disabled=true;peerBusy=false;if(!gameStarted)peerRetry=setTimeout(makePeer,1000);else setStatus('🟠 PeerJS đã đóng trong lúc chơi — không tự tạo phiên mới để tránh mất dữ liệu.');});
+}
+makePeer();
+</script></body></html>
